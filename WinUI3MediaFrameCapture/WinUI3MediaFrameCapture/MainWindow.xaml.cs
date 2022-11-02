@@ -34,30 +34,37 @@ namespace WinUI3MediaFrameCapture
     /// </summary>
     public sealed partial class MainWindow : Window
     {
+
+        private MediaCapture mediaCaptureManager;
+        private MediaFrameReader mediaFrameReader;
+        private bool captureManagerInitialized = false;
+
+        private Image imagePreviewElement;
+        private SoftwareBitmap backBuffer;
+        private bool taskFrameRenderRunning = false;
+
         public MainWindow()
         {
             this.InitializeComponent();
             //this.StartPreviewAsync();
+
+            Closed += MainWindow_Closed;
         }
 
-        Windows.Media.Capture.MediaCapture mediaCaptureManager;
-        MediaFrameReader mediaFrameReader;
-        private bool captureManagerInitialized = false;
-
-        Image imagePreviewElement;
-
-        private SoftwareBitmap backBuffer;
-        private bool taskFrameRenderRunning = false;
+        private async void MainWindow_Closed(object sender, WindowEventArgs args)
+        {
+            await this.CleanupMediaCaptureAsync();
+        }
 
         private async void StartPreviewAsync()
         {
+            if (captureManagerInitialized == true)
+            {
+                return;
+            }
+
             try
             {
-                if (captureManagerInitialized == true)
-                {
-                    return;
-                }
-
                 //1. Select frame sources and frame source groups//
                 var frameSourceGroups = await MediaFrameSourceGroup.FindAllAsync();
                 if (frameSourceGroups.Count <= 0)
@@ -66,15 +73,15 @@ namespace WinUI3MediaFrameCapture
                     return;
                 }
 
-                //Get the first frame source group and frame source, Or write your code to select them//
-                MediaFrameSourceGroup selectedGroup = frameSourceGroups[0]; 
-                MediaFrameSourceInfo frameSourceInfo = selectedGroup.SourceInfos[0];
+                //Get the first frame source group and first frame source, Or write your code to select them//
+                MediaFrameSourceGroup selectedFrameSourceGroup = frameSourceGroups[0]; 
+                MediaFrameSourceInfo frameSourceInfo = selectedFrameSourceGroup.SourceInfos[0];
 
                 //2. Initialize the MediaCapture object to use the selected frame source group//
                 mediaCaptureManager = new MediaCapture();
                 var settings = new MediaCaptureInitializationSettings
                 {
-                    SourceGroup = selectedGroup,
+                    SourceGroup = selectedFrameSourceGroup,
                     SharingMode = MediaCaptureSharingMode.SharedReadOnly,
                     StreamingCaptureMode = StreamingCaptureMode.Video,
                     MemoryPreference = MediaCaptureMemoryPreference.Cpu
@@ -93,7 +100,7 @@ namespace WinUI3MediaFrameCapture
                 await mediaFrameReader.StartAsync();
 
                 captureManagerInitialized = true;
-                TxtActivityLog.Text = "Media preview from device: " + selectedGroup.DisplayName;
+                TxtActivityLog.Text = "Media preview from device: " + selectedFrameSourceGroup.DisplayName;
 
             }
             catch (Exception Exc)
@@ -128,8 +135,8 @@ namespace WinUI3MediaFrameCapture
 
             if (softwareBitmap != null)
             {
-                if (softwareBitmap.BitmapPixelFormat != Windows.Graphics.Imaging.BitmapPixelFormat.Bgra8 ||
-                    softwareBitmap.BitmapAlphaMode != Windows.Graphics.Imaging.BitmapAlphaMode.Premultiplied)
+                if (softwareBitmap.BitmapPixelFormat != BitmapPixelFormat.Bgra8 ||
+                    softwareBitmap.BitmapAlphaMode != BitmapAlphaMode.Premultiplied)
                 {
                     softwareBitmap = SoftwareBitmap.Convert(softwareBitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
                 }
@@ -169,8 +176,8 @@ namespace WinUI3MediaFrameCapture
         {
             try
             {
-                //captureManager = new MediaCapture();
-                //await captureManager.InitializeAsync();
+                //mediaCaptureManager = new MediaCapture();
+                //await mediaCaptureManager.InitializeAsync();
                 //TxtActivityLog.Text = "Camera has Initialized.";
 
                 throw new NotImplementedException();
@@ -185,8 +192,8 @@ namespace WinUI3MediaFrameCapture
         {
             try
             {
-                //capturePreview.Source = captureManager;
-                //await captureManager.StartPreviewAsync();   
+                //capturePreview.Source = mediaCaptureManager;
+                //await mediaCaptureManager.StartPreviewAsync();   
                 //TxtActivityLog.Text = "Media Preview has started.";
 
                 this.StartPreviewAsync();
@@ -201,7 +208,7 @@ namespace WinUI3MediaFrameCapture
         {
             try
             {
-                //await captureManager.StopPreviewAsync();
+                //await mediaCaptureManager.StopPreviewAsync();
                 //TxtActivityLog.Text = "Media Preview has canceled.";
 
                 await CleanupMediaCaptureAsync();
@@ -223,18 +230,20 @@ namespace WinUI3MediaFrameCapture
             {
                 ImageEncodingProperties imgFormat = ImageEncodingProperties.CreateJpeg();
 
-                // create storage file in local app storage
-                StorageFile file = await ApplicationData.Current.LocalFolder.CreateFileAsync("TestPhoto.jpg",
-                    CreationCollisionOption.GenerateUniqueName);
+                // Create storage file in local app storage
+                StorageFile storageFile = await ApplicationData.Current.LocalFolder.CreateFileAsync(
+                    "TestPhoto.jpg", CreationCollisionOption.GenerateUniqueName);
 
-                // take photo
-                await mediaCaptureManager.CapturePhotoToStorageFileAsync(imgFormat, file);
+                // Take photo
+                await mediaCaptureManager.CapturePhotoToStorageFileAsync(imgFormat, storageFile);
 
                 // Get photo as a BitmapImage
-                BitmapImage bmpImage = new BitmapImage(new Uri(file.Path));
+                BitmapImage bmpImage = new BitmapImage(new Uri(storageFile.Path));
 
-                // imagePreview is a <Image> object defined in XAML
+                // ImagePreview is a <Image> object defined in XAML
                 imageCapture.Source = bmpImage;
+
+                TxtActivityLog.Text = "Media Photo has Captured.";
             }
             catch (Exception Exc)
             {
