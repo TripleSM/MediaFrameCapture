@@ -53,7 +53,12 @@ namespace WinUI3MediaFrameCapture
             IntPtr windowHandle = WinRT.Interop.WindowNative.GetWindowHandle(m_window);
             WindowId windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(windowHandle);
             AppWindow appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
-            appWindow.Resize(new Windows.Graphics.SizeInt32(670, 840));
+
+            if (appWindow != null)
+            {
+                appWindow.Title = "WinUI Desktop (Camera Preview)";
+                appWindow.Resize(new Windows.Graphics.SizeInt32(670, 840));
+            }
         }
 
         private Window m_window;

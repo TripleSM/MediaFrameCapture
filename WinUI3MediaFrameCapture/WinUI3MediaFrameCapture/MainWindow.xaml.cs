@@ -19,6 +19,7 @@ using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.Graphics.Imaging;
+using Windows.UI.Core;
 using Windows.Media.Capture;
 using Windows.Media.Capture.Frames;
 using Windows.Media.MediaProperties;
@@ -34,13 +35,12 @@ namespace WinUI3MediaFrameCapture
     /// </summary>
     public sealed partial class MainWindow : Window
     {
-
         private MediaCapture mediaCaptureManager;
         private MediaFrameReader mediaFrameReader;
         private bool captureManagerInitialized = false;
 
         private Image imagePreviewElement;
-        private SoftwareBitmap backBuffer;
+        private SoftwareBitmap backBitmapBuffer;
         private bool taskFrameRenderRunning = false;
 
         public MainWindow()
@@ -141,13 +141,13 @@ namespace WinUI3MediaFrameCapture
                     softwareBitmap = SoftwareBitmap.Convert(softwareBitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
                 }
 
-                // Swap the processed frame to _backBuffer and dispose of the unused image.
-                softwareBitmap = Interlocked.Exchange(ref backBuffer, softwareBitmap);
+                // Swap the processed frame to backBuffer and dispose of the unused image.
+                softwareBitmap = Interlocked.Exchange(ref backBitmapBuffer, softwareBitmap);
                 softwareBitmap?.Dispose();
 
                 // Changes to XAML ImageElement must happen on UI thread through Dispatcher
                 //var task = imagePreviewElement.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
-                _ = imagePreviewElement.DispatcherQueue.TryEnqueue(async () =>
+                _ = imagePreviewElement.DispatcherQueue.TryEnqueue( async () =>
                 {
                     // Don't let two copies of this task run at the same time.
                     if (taskFrameRenderRunning)
@@ -158,7 +158,7 @@ namespace WinUI3MediaFrameCapture
 
                     // Keep draining frames from the backbuffer until the backbuffer is empty.
                     SoftwareBitmap latestBitmap;
-                    while ((latestBitmap = Interlocked.Exchange(ref backBuffer, null)) != null)
+                    while ((latestBitmap = Interlocked.Exchange(ref backBitmapBuffer, null)) != null)
                     {
                         var imageSource = (SoftwareBitmapSource)imagePreviewElement.Source;
                         await imageSource.SetBitmapAsync(latestBitmap);
@@ -169,7 +169,10 @@ namespace WinUI3MediaFrameCapture
                 });
             }
 
-            //mediaFrameReference.Dispose();
+            if (mediaFrameReference != null)
+            {
+                mediaFrameReference.Dispose();
+            }
         }
 
         async private void InitCamera_Click(object sender, RoutedEventArgs e)
@@ -209,6 +212,7 @@ namespace WinUI3MediaFrameCapture
             try
             {
                 //await mediaCaptureManager.StopPreviewAsync();
+                //mediaCaptureManager.Dispose();
                 //TxtActivityLog.Text = "Media Preview has canceled.";
 
                 await CleanupMediaCaptureAsync();
