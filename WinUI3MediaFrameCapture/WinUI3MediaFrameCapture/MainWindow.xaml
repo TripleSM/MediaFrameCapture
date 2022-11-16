@@ -11,7 +11,7 @@
     mc:Ignorable="d">
 
     <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
-        <StackPanel Orientation="Horizontal">
+        <StackPanel Orientation="Horizontal" Background = "Black">
             <!--CaptureElement x:Name="capturePreview" Width="640" Height="480" /-->
             <Image x:Name="imagePreview" Stretch="Fill" Width="640" Height="480" />
         </StackPanel>
