@@ -21,7 +21,7 @@
             <Button x:Name="BtnStartPreview" Click="StartCapturePreview_Click" Content="Start Preview" />
             <Button x:Name="BtnCapturePhoto" Click="CapturePhoto_Click" Content="Capture Photo"/>
             <Button x:Name="BtnStopPreview" Click="StopCapturePreview_Click" Content="Stop Preview" />
-            <Image x:Name="imageCapture" Stretch="Fill" Width="160" Height="100" Source="ms-appx:///Assets/Square150x150Logo.scale-200.png" />
+            <Image x:Name="imageCapture" Stretch="Fill" Width="160" Height="120" Margin="10,10" Source="ms-appx:///Assets/Square150x150Logo.scale-200.png" />
         </StackPanel>
 
         <TextBox x:Name="TxtActivityLog" FontSize="12" 
